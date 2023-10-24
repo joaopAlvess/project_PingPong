@@ -93,12 +93,25 @@ const placar = {
 const bola = {
     pontoX: 100,
     pontoY: 200,
+    direcaoX: 1,
+    direcaoY: 1,
     raio: 30,
-    circunferencia: 2 * Math.PI,
     velocidade: 3,
-    movimentoBola: function () {
-        this.pontoX += 1 * this.velocidade;
-        this.pontoY += 1 * this.velocidade;
+    _calculoPosicao: function() {
+        if(this.pontoY > campo.altura - this.raio) {
+            // this._revertendoY();
+            this.direcaoY = this.direcaoY * -1
+        }
+    },
+    _revertendoX: function() {
+        this.direcaoX = this.direcaoX * -1
+    },
+    // _revertendoY: function() {
+    //     this.direcaoY = this.direcaoY * -1
+    // },
+    _movimentoBola: function() {
+        this.pontoX += this.direcaoX * this.velocidade;
+        this.pontoY += this.direcaoY * this.velocidade;
     },
     //Desenhando a bola
     mesa: function () {
@@ -108,11 +121,12 @@ const bola = {
             this.pontoY,
             this.raio,
             0,
-            this.circunferencia,
+            2 * Math.PI,
             false)
         canvasContext.fill();
 
-        this.movimentoBola();
+        this._calculoPosicao();
+        this._movimentoBola();
     }
 }
 
