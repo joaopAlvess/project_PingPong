@@ -27,7 +27,7 @@ const campo = {
 }
 
 const linha = {
-    largura: 16,
+    largura: espessuraDivisaoLinha,
     altura: campo.altura,
     // Desenhando a linha central de divisão
     mesa: function () {
@@ -44,6 +44,7 @@ const raqueteEsquerda = {
     distancia: margin,
     alturaInicial: 0,
     altura: 200,
+    largura: espessuraDivisaoLinha,
     movimentoMouse: function () {
         this.alturaInicial = mouse.y - this.altura / 2;
     },
@@ -52,7 +53,7 @@ const raqueteEsquerda = {
         canvasContext.fillRect(
             this.distancia,
             this.alturaInicial,
-            linha.largura,
+            this.largura,
             this.altura)
 
         this.movimentoMouse()
@@ -60,17 +61,27 @@ const raqueteEsquerda = {
 }
 
 const raqueteDireita = {
-    distancia: campo.largura - linha.largura - 10,
+    distancia: campo.largura - linha.largura - margin,
+    alturaInicial: 0,
     altura: 200,
+    largura: linha.largura,
+    velocidade: 2,
     movimento: function () {
-        this.altura = bola.pontoY
+        if (this.alturaInicial + this.altura / 2 < bola.pontoY + bola.raio) {
+            this.alturaInicial += this.velocidade;
+        } else {
+            this.alturaInicial -= this.velocidade;
+        }
+    },
+    _aumentarVelocidade: function () {
+        this.velocidade += 2
     },
     //Desenhando a raquete direita
     mesa: function () {
         canvasContext.fillRect(
             this.distancia,
-            this.altura,
-            linha.largura,
+            this.alturaInicial,
+            this.largura,
             this.altura)
 
         this.movimento();
@@ -78,38 +89,89 @@ const raqueteDireita = {
 }
 
 const placar = {
-    player1: '1',
-    player2: '2',
+    player1: 0,
+    computador: 0,
+    placarJogador: function () {
+        this.player1++
+    },
+    placarComputador: function () {
+        this.computador++
+    },
     //Desenhando o placar
     mesa: function () {
         canvasContext.font = 'bold 70px Arial'
         canvasContext.textAlign = 'center'
         canvasContext.textBaseline = 'top'
         canvasContext.fillText(this.player1, campo.largura / 4, 30)
-        canvasContext.fillText(this.player2, campo.largura / 4 + campo.largura / 2, 30)
+        canvasContext.fillText(this.computador, campo.largura / 4 + campo.largura / 2, 30)
     }
 }
 
 const bola = {
-    pontoX: 100,
-    pontoY: 200,
+    pontoX: 0,
+    pontoY: 0,
     direcaoX: 1,
     direcaoY: 1,
-    raio: 30,
+    raio: 20,
     velocidade: 3,
-    _calculoPosicao: function() {
-        if(this.pontoY > campo.altura - this.raio) {
-            // this._revertendoY();
-            this.direcaoY = this.direcaoY * -1
+    _calculoPosicao: function () {
+
+        //VERIFICAÇÃO SUPERIOR E INFERIOR
+
+        // Verificando as laterais superiores e inferiores do campo
+        if ((this.pontoY > campo.altura - this.raio && this.direcaoY > 0) ||
+            (this.pontoY - this.raio < 0 && this.direcaoY < 0)) {
+            this._revertendoY();
         }
+
+        // VERIFICAÇÃO DIREITA
+
+        // Verificando se a bolinha ultrapassou a raquete, e se o jogador fez ponto
+        if (this.pontoX > campo.largura - this.raio - raqueteDireita.largura - margin) {
+            // Verificando se a bola irá de encontro a raquete.
+            if (
+                this.pontoY + this.raio > raqueteDireita.alturaInicial &&
+                this.pontoY - this.raio < raqueteDireita.alturaInicial + raqueteDireita.altura
+            ) {
+                // Revertendo a posição da bola caso a raquete seja atingida
+                this._revertendoX()
+            } else {
+                // Alterando o placar do Player 1 caso a bola passe da raquete e colocando-a no ponto central do campo.
+                placar.placarJogador();
+                this._pontoInicialBola();
+            }
+        }
+
+        //VERIFICAÇÃO ESQUERDA
+
+        if (this.pontoX < this.raio + raqueteEsquerda.largura + margin) {
+            if (
+                this.pontoY + this.raio > raqueteEsquerda.alturaInicial &&
+                this.pontoY - this.raio < raqueteEsquerda.alturaInicial + raqueteEsquerda.altura
+            ) {
+                this._revertendoX();
+            } else {
+                placar.placarComputador();
+                this._pontoInicialBola();
+            }
+        }
+
     },
-    _revertendoX: function() {
+    _revertendoX: function () {
         this.direcaoX = this.direcaoX * -1
     },
-    // _revertendoY: function() {
-    //     this.direcaoY = this.direcaoY * -1
-    // },
-    _movimentoBola: function() {
+    _revertendoY: function () {
+        this.direcaoY = this.direcaoY * -1
+    },
+    _pontoInicialBola: function () {
+        while (this.velocidade <= 12) {
+            this.velocidade += 2;
+            raqueteDireita._aumentarVelocidade();
+        }
+        this.pontoX = campo.largura / 2;
+        this.pontoY = campo.altura / 2
+    },
+    _movimentoBola: function () {
         this.pontoX += this.direcaoX * this.velocidade;
         this.pontoY += this.direcaoY * this.velocidade;
     },
